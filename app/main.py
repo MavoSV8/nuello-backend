@@ -39,13 +39,13 @@ def hello_world():  # put application's code here
 #     return 'IT WORKS!'
 def get_tables():
     if request.method == "GET":
-        return 'IT WORKS!'
+        # return 'IT WORKS!'
 
-        # tables = TablesModel.query.all()
-        # results = [
-        #     {
-        #         "id": table.id,
-        #         "name": table.name,
-        #     } for table in tables]
+        tables = TablesModel.query.all()
+        results = [
+            {
+                "id": table.id,
+                "name": table.name,
+            } for table in tables]
 
-        # return json.dumps(results)
+        return json.dumps(results)
