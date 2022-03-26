@@ -16,7 +16,7 @@ migrate = Migrate(app, db)
 
 
 class TablesModel(db.Model):
-    __tablename__ = 'tables'
+    __tablename__ = 'Tables'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
