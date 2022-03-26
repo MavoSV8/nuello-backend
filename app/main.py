@@ -16,7 +16,7 @@ migrate = Migrate(app, db)
 
 
 class TablesModel(db.Model):
-    __tablename__ = 'Tables'
+    __tablename__ = 'tables'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
@@ -39,8 +39,6 @@ def hello_world():  # put application's code here
 #     return 'IT WORKS!'
 def get_tables():
     if request.method == "GET":
-        # return 'IT WORKS!'
-
         tables = TablesModel.query.all()
         results = [
             {
