@@ -44,6 +44,6 @@ def get_tables():
             {
                 "id": table.id,
                 "name": table.name,
-            } for table in tables]
+            } for table in Tables]
 
         return json.dumps(results)
