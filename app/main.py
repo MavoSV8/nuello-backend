@@ -116,5 +116,6 @@ def signup():
 
 @app.route('/signout', methods=['POST'])
 def logout():
-    #db.session.pop('logged_in', None)
-    return json.dumps({"operation": "signout", "result": "success"})
+    if request.method == 'POST':
+        #db.session.pop('logged_in', None)
+        return json.dumps({"operation": "signout", "result": "success"})
