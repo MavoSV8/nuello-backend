@@ -39,7 +39,7 @@ class UserModel(db.Model):
     name = db.Column(db.Text, nullable=False)
     password = db.Column(db.Text, nullable=False)
 
-    def __init__(self,  name, password):
+    def __init__(self, name, password):
         self.name = name
         self.password = password
 
@@ -82,14 +82,14 @@ def signin():
 
         # User does not exist.
         if user is None:
-            return json.dumps({"operation" : "singin", "result" : "failure"})
+            return json.dumps({"operation": "singin", "result": "failure"})
 
         # Invalid password
         if not checkpw(pwd.encode('utf-8'), user.password.encode('utf-8')):
-            return json.dumps({"operation" : "singin", "result" : "failure"})
+            return json.dumps({"operation": "singin", "result": "failure"})
 
         # All ok
-        return json.dumps({"operation" : "singin", "result" : "success"})
+        return json.dumps({"operation": "singin", "result": "success"})
 
 
 @app.route('/signup', methods=['POST'])
@@ -111,4 +111,11 @@ def signup():
 
         print("User {} added".format(user.name))
 
-        return json.dumps({"operation" : "singup", "result" : "success"})
+        return json.dumps({"operation": "singup", "result": "success"})
+
+
+@app.route('/signout', methods=['POST'])
+def signout():
+    if request.method == 'POST':
+        #db.session.pop('logged_in', None)
+        return json.dumps({"operation": "signout", "result": "success"})
