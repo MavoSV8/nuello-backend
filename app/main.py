@@ -23,13 +23,15 @@ class TablesModel(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
+    desc = db.Column(db.Text, nullable=False)
 
-    def __init__(self, id, name):
+    def __init__(self, id, name, desc):
         self.id = id
         self.name = name
+        self.desc = desc
 
     def __repr__(self):
-        return '<Table %r, %r>' % (self.id, self.name)
+        return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
 
 
 class UserModel(db.Model):
@@ -60,6 +62,7 @@ def get_tables():
             {
                 "id": table.id,
                 "name": table.name,
+                "desc" : table.desc
             } for table in tables]
 
         return json.dumps(results)
