@@ -3,9 +3,10 @@ import json
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 from flask_api import status
 from bcrypt import hashpw, checkpw, gensalt
+
 
 app = Flask(__name__)
 #                                                        change below if address differs
@@ -16,7 +17,6 @@ cors = CORS(app)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
 
 class TablesModel(db.Model):
     __tablename__ = 'tables'
@@ -32,6 +32,27 @@ class TablesModel(db.Model):
 
     def __repr__(self):
         return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
+
+
+class TableParentModel(db.Model):
+    __abstract__ = True
+    __table_args__ = {'extend_existing': True} #may be worth to replace it with different solution
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Text, nullable=False)
+    desc = db.Column(db.Text, nullable=False)
+
+    def __init__(self, id, name, desc):
+        self.id = id
+        self.name = name
+        self.desc = desc
+
+    def __repr__(self):
+        return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
+
+def get_table_model(table_name):
+    class GenericTable(TableParentModel):
+        __tablename__ = table_name
+    return GenericTable
 
 
 class UserModel(db.Model):
@@ -54,6 +75,7 @@ def hello_world():  # put application's code here
     return 'Hello World!'
 
 
+
 @app.route('/tables', methods=['GET'])
 def get_tables():
     if request.method == "GET":
@@ -67,6 +89,20 @@ def get_tables():
 
         return json.dumps(results)
 
+
+@app.route('/tables/<table_name>', methods=['GET'])
+def get_table(table_name):
+    if request.method == "GET":
+        model = get_table_model(table_name)
+        tables = model.query.all()
+        results = [
+            {
+                "id": table.id,
+                "name": table.name,
+                "desc" : table.desc
+            } for table in tables]
+
+        return json.dumps(results)
 
 @app.route('/signin', methods=['GET'])
 def signin():
