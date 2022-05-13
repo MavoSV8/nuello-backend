@@ -1,14 +1,15 @@
 import json
-import string
+
 
 import sqlalchemy
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
-from flask import Flask, request
+from flask import Flask, request, make_response
 from flask_cors import CORS
 from flask_api import status
 from bcrypt import hashpw, checkpw, gensalt
-from sqlalchemy import null
+
+
 
 app = Flask(__name__)
 #                                                        change below if address differs
@@ -37,8 +38,10 @@ class TablesModel(db.Model):
         return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
 
 
+
 class ListsModel(db.Model):
     __tablename__ = 'lists'
+
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
@@ -51,6 +54,7 @@ class ListsModel(db.Model):
 
     def __repr__(self):
         return '<List %r, %r, %r>' % (self.id, self.name, self.table_id)
+
 
 
 class CardsModel(db.Model):
@@ -95,6 +99,8 @@ def hello_world():  # put application's code here
 @app.route('/tables', methods=['GET'])
 def get_tables():
     if request.method == "GET":
+        if request.cookies.get('logged_in'):
+            print("jest ciasteczko")
         tables = TablesModel.query.all()
         results = [
             {
@@ -102,7 +108,6 @@ def get_tables():
                 "name": table.name,
                 "desc": table.desc
             } for table in tables]
-
         return json.dumps(results)
 
 
@@ -124,10 +129,12 @@ def get_lists():  # table_id
         # lists = ListsModel.query.all()
         results = [
             {
+
                 "id": list.id,
                 "name": list.name,
                 "table_id": list.table_id
             } for list in lists]
+
 
         return json.dumps(results)
     if request.method == "POST":
@@ -282,6 +289,7 @@ def get_cards():
 
         return json.dumps({"operation": "patch", "result": "success"})
 
+
 @app.route('/signin', methods=['GET'])
 def signin():
     if request.method == 'GET':
@@ -305,8 +313,9 @@ def signin():
         if not checkpw(pwd.encode('utf-8'), user.password.encode('utf-8')):
             return json.dumps({"operation": "singin", "result": "failure"})
 
-        # All ok
-        return json.dumps({"operation": "singin", "result": "success"})
+        response = make_response(json.dumps({"operation": "singin", "result": "success"}))
+        response.set_cookie("logged_in", "True")
+        return response
 
 
 @app.route('/signup', methods=['POST'])
@@ -334,5 +343,5 @@ def signup():
 @app.route('/signout', methods=['POST'])
 def signout():
     if request.method == 'POST':
-        # db.session.pop('logged_in', None)
         return json.dumps({"operation": "signout", "result": "success"})
+
