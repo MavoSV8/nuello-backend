@@ -7,7 +7,6 @@ from flask_cors import CORS
 from flask_api import status
 from bcrypt import hashpw, checkpw, gensalt
 
-
 app = Flask(__name__)
 #                                                        change below if address differs
 app.config[
@@ -17,6 +16,7 @@ cors = CORS(app)
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
 
 class TablesModel(db.Model):
     __tablename__ = 'tables'
@@ -36,7 +36,7 @@ class TablesModel(db.Model):
 
 class TableParentModel(db.Model):
     __abstract__ = True
-    __table_args__ = {'extend_existing': True} #may be worth to replace it with different solution
+    __table_args__ = {'extend_existing': True}  # may be worth to replace it with different solution
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
     desc = db.Column(db.Text, nullable=False)
@@ -49,9 +49,11 @@ class TableParentModel(db.Model):
     def __repr__(self):
         return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
 
+
 def get_table_model(table_name):
     class GenericTable(TableParentModel):
         __tablename__ = table_name
+
     return GenericTable
 
 
@@ -75,7 +77,6 @@ def hello_world():  # put application's code here
     return 'Hello World!'
 
 
-
 @app.route('/tables', methods=['GET'])
 def get_tables():
     if request.method == "GET":
@@ -84,7 +85,7 @@ def get_tables():
             {
                 "id": table.id,
                 "name": table.name,
-                "desc" : table.desc
+                "desc": table.desc
             } for table in tables]
 
         return json.dumps(results)
@@ -99,10 +100,48 @@ def get_table(table_name):
             {
                 "id": table.id,
                 "name": table.name,
-                "desc" : table.desc
+                "desc": table.desc
             } for table in tables]
 
         return json.dumps(results)
+
+
+# @app.route('/tables/add/<id>/<table_name>/<desc>', methods=['POST'])
+# def add_table(id, table_name, desc):
+#     # def add_record(table_name):
+#     if request.method == 'POST':
+#         tables_model = TablesModel
+#         new_row = tables_model(id=id, name=table_name, desc=desc)
+#
+#         db.session.add(new_row)
+#         model = get_table_model(table_name)
+#         table_name.model.create(db.session.bind)
+#         db.session.commit()
+#         return json.dumps({"operation": "singup", "result": "success"})
+
+@app.route('/tables/<table_name>/add/<row_id>/<name>/<desc>', methods=['POST'])
+def add_record(table_name, row_id, name, desc):
+    if request.method == 'POST':
+        model = get_table_model(table_name)
+
+        new_row = model(id=row_id, name=name, desc=desc)
+        db.session.add(new_row)
+        db.session.commit()
+        return json.dumps({"operation": "singup", "result": "success"})
+
+@app.route('/tables/<table_name>/delete/<row_id>', methods=['POST'])
+def delete_record(table_name, row_id):
+    if request.method == 'POST':
+        model = get_table_model(table_name)
+
+        row = model.query.filter_by(id=row_id).delete()
+        # db.session.delete(row)
+        # db.execute('delete from ' + table_name + ' where id = ' + row_id)
+
+        # new_row = model(id=row_id, name=name, desc=desc)
+        # db.session.add(new_row)
+        db.session.commit()
+        return json.dumps({"operation": "singup", "result": "success"})
 
 @app.route('/signin', methods=['GET'])
 def signin():
@@ -156,5 +195,5 @@ def signup():
 @app.route('/signout', methods=['POST'])
 def signout():
     if request.method == 'POST':
-        #db.session.pop('logged_in', None)
+        # db.session.pop('logged_in', None)
         return json.dumps({"operation": "signout", "result": "success"})
