@@ -1,11 +1,14 @@
 import json
+import string
 
+import sqlalchemy
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request
 from flask_cors import CORS
 from flask_api import status
 from bcrypt import hashpw, checkpw, gensalt
+from sqlalchemy import null
 
 app = Flask(__name__)
 #                                                        change below if address differs
@@ -34,28 +37,40 @@ class TablesModel(db.Model):
         return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
 
 
-class TableParentModel(db.Model):
-    __abstract__ = True
-    __table_args__ = {'extend_existing': True}  # may be worth to replace it with different solution
+class ListsModel(db.Model):
+    __tablename__ = 'lists'
+
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
-    desc = db.Column(db.Text, nullable=False)
+    table_id = db.Column(db.Integer, db.ForeignKey('tables.id'), nullable=False)
 
-    def __init__(self, id, name, desc):
+    def __init__(self, id, name, table_id):
         self.id = id
         self.name = name
-        self.desc = desc
+        self.table_id = table_id
 
     def __repr__(self):
-        return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
+        return '<List %r, %r, %r>' % (self.id, self.name, self.table_id)
 
 
-def get_table_model(table_name):
-    class GenericTable(TableParentModel):
-        __tablename__ = table_name
+class CardsModel(db.Model):
+    __tablename__ = 'cards'
 
-    return GenericTable
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Text, nullable=False)
+    list_id = db.Column(db.Integer, db.ForeignKey('lists.id'), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    assigne = db.Column(db.Text, nullable=True)
 
+    def __init__(self, id, name, list_id, description, assigne):
+        self.id = id
+        self.name = name
+        self.list_id = list_id
+        self.description = description
+        self.assigne = assigne
+
+    def __repr__(self):
+        return '<List %r, %r, %r, %r, %r>' % (self.id, self.name, self.list_id, self.description, self.assigne)
 
 class UserModel(db.Model):
     __tablename__ = 'users'
@@ -91,57 +106,176 @@ def get_tables():
         return json.dumps(results)
 
 
-@app.route('/tables/<table_name>', methods=['GET'])
-def get_table(table_name):
+@app.route('/lists', methods=['GET', 'POST', 'DELETE', 'PATCH'])
+def get_lists():  # table_id
     if request.method == "GET":
-        model = get_table_model(table_name)
-        tables = model.query.all()
+
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+        if "table_id" not in data: #maybe just return all
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+        if "id" in data:
+            lists = ListsModel.query.filter_by(table_id=data["table_id"],id=data["id"])
+        else:
+            lists = ListsModel.query.filter_by(table_id=data["table_id"])
+        # lists = ListsModel.query.all()
         results = [
             {
-                "id": table.id,
-                "name": table.name,
-                "desc": table.desc
-            } for table in tables]
+                "id": list.id,
+                "name": list.name,
+                "table_id": list.table_id
+            } for list in lists]
 
         return json.dumps(results)
+    if request.method == "POST":
+        lists = ListsModel
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
+        # workaround, no idea how to not pass id without altering model
+        id = ListsModel.query.order_by(ListsModel.id.desc()).first().id
+        id += 1
 
-# @app.route('/tables/add/<id>/<table_name>/<desc>', methods=['POST'])
-# def add_table(id, table_name, desc):
-#     # def add_record(table_name):
-#     if request.method == 'POST':
-#         tables_model = TablesModel
-#         new_row = tables_model(id=id, name=table_name, desc=desc)
-#
-#         db.session.add(new_row)
-#         model = get_table_model(table_name)
-#         table_name.model.create(db.session.bind)
-#         db.session.commit()
-#         return json.dumps({"operation": "singup", "result": "success"})
-
-@app.route('/tables/<table_name>/add/<row_id>/<name>/<desc>', methods=['POST'])
-def add_record(table_name, row_id, name, desc):
-    if request.method == 'POST':
-        model = get_table_model(table_name)
-
-        new_row = model(id=row_id, name=name, desc=desc)
+        # new_row = card(id, data["name"],data["list_id"],data["description"],data["assigne"])
+        new_row = lists(id, data["name"], data["table_id"])
         db.session.add(new_row)
         db.session.commit()
-        return json.dumps({"operation": "singup", "result": "success"})
 
-@app.route('/tables/<table_name>/delete/<row_id>', methods=['POST'])
-def delete_record(table_name, row_id):
-    if request.method == 'POST':
-        model = get_table_model(table_name)
+        print("List {} added".format(lists.name))
 
-        row = model.query.filter_by(id=row_id).delete()
-        # db.session.delete(row)
-        # db.execute('delete from ' + table_name + ' where id = ' + row_id)
+        return json.dumps({"operation": "post", "result": "success"})
+    if request.method == "DELETE":
+        lists = ListsModel
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request', status.HTTP_400_BAD_REQUEST
 
-        # new_row = model(id=row_id, name=name, desc=desc)
-        # db.session.add(new_row)
+        if "table_id" not in data or "id" not in data:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+        lists.query.filter_by(id=data["id"], table_id=data["table_id"]).delete()
         db.session.commit()
-        return json.dumps({"operation": "singup", "result": "success"})
+
+        print("List {} deleted".format(lists.name))
+
+        return json.dumps({"operation": "delete", "result": "success"})
+    if request.method == "PATCH":
+        lists = ListsModel
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request', status.HTTP_400_BAD_REQUEST
+        if "table_id" not in data or "id" not in data:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+        new_values = data.copy()
+        new_values.pop("id", None)
+        new_values.pop("table_id", None)
+        print(new_values)
+
+        # CardsModel.query.filter_by(id=data["id"],list_id=data["list_id"]).update(new_values)
+        lists.query.filter_by(id=data["id"]).update(new_values)
+        db.session.commit()
+
+        print("List {} altered".format(lists.name))
+
+        return json.dumps({"operation": "patch", "result": "success"})
+
+
+@app.route('/cards', methods=['GET', 'POST', 'DELETE', 'PATCH'])
+def get_cards():
+    if request.method == "GET":
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+        if "list_id" not in data:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+        if "id" in data:
+            cards = CardsModel.query.filter_by(list_id=data["list_id"],id=data["id"])
+        else:
+            cards = CardsModel.query.filter_by(list_id=data["list_id"])
+        results = [
+            {
+                "id": card.id,
+                "name": card.name,
+                "list_id": card.list_id,
+                "description": card.description,
+                "assigne": card.assigne
+            } for card in cards]
+
+        return json.dumps(results)
+    if request.method == "POST":
+        card = CardsModel
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+        # workaround, no idea how to not pass id without altering model
+        id = CardsModel.query.order_by(CardsModel.id.desc()).first().id
+        id += 1
+
+        # new_row = card(id, data["name"],data["list_id"],data["description"],data["assigne"])
+        new_row = card(id, data["name"], data["list_id"],
+                       data["description"] if "description" in data else sqlalchemy.sql.null(),
+                       data["assigne"] if "assigne" in data else sqlalchemy.sql.null())
+        db.session.add(new_row)
+        db.session.commit()
+
+        print("Card {} added".format(card.name))
+
+        return json.dumps({"operation": "post", "result": "success"})
+    if request.method == "DELETE":
+        card = CardsModel
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request', status.HTTP_400_BAD_REQUEST
+
+        if "list_id" not in data or "id" not in data:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+        card.query.filter_by(id=data["id"], list_id=data["list_id"]).delete()
+        db.session.commit()
+
+        print("Card {} deleted".format(card.name))
+
+        return json.dumps({"operation": "delete", "result": "success"})
+    if request.method == "PATCH":
+        card = CardsModel
+        data = {}
+        try:
+            data = json.loads(request.data)
+        except Exception:
+            return 'Invalid request', status.HTTP_400_BAD_REQUEST
+        if "list_id" not in data or "id" not in data:
+            return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+        new_values = data.copy()
+        new_values.pop("id", None)
+        new_values.pop("list_id", None)
+        print(new_values)
+
+        # CardsModel.query.filter_by(id=data["id"],list_id=data["list_id"]).update(new_values)
+        card.query.filter_by(id=data["id"]).update(new_values)
+        db.session.commit()
+
+        print("Card {} altered".format(card.name))
+
+        return json.dumps({"operation": "patch", "result": "success"})
 
 @app.route('/signin', methods=['GET'])
 def signin():
