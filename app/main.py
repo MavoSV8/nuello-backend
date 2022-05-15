@@ -161,6 +161,11 @@ def get_lists():  # table_id
         if "table_id" not in data or "id" not in data:
             return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
+        # //
+        cards = CardsModel.query.filter_by(list_id=data["id"])
+        for card in cards:
+            card.query.filter_by(id=card.id).delete()
+        # //
         lists.query.filter_by(id=data["id"], table_id=data["table_id"]).delete()
         db.session.commit()
 
