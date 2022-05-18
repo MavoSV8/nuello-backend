@@ -3,7 +3,9 @@ import json
 import sqlalchemy
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+
 from flask import Flask, request, make_response, session
+
 from flask_cors import CORS
 from flask_api import status
 from bcrypt import hashpw, checkpw, gensalt
@@ -38,9 +40,9 @@ class TablesModel(db.Model):
         return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
 
 
+
 class ListsModel(db.Model):
     __tablename__ = 'lists'
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, nullable=False)
     table_id = db.Column(db.Integer, db.ForeignKey('tables.id'), nullable=False)
@@ -52,6 +54,7 @@ class ListsModel(db.Model):
 
     def __repr__(self):
         return '<List %r, %r, %r>' % (self.id, self.name, self.table_id)
+
 
 
 class CardsModel(db.Model):
@@ -72,6 +75,7 @@ class CardsModel(db.Model):
 
     def __repr__(self):
         return '<List %r, %r, %r, %r, %r>' % (self.id, self.name, self.list_id, self.description, self.assigne)
+
 
 
 class UserModel(db.Model):
@@ -96,6 +100,7 @@ def hello_world():  # put application's code here
 
 @app.route('/tables', methods=['GET'])
 def get_tables():
+
     if 'logged' in session:
         print("jest sesyja")
 
@@ -320,8 +325,10 @@ def signin():
         if not checkpw(pwd.encode('utf-8'), user.password.encode('utf-8')):
             return json.dumps({"operation": "singin", "result": "failure"})
 
+
         session['logged'] = name
         return json.dumps({"operation": "singin", "result": "success"})
+
 
 
 @app.route('/signup', methods=['POST'])
@@ -351,3 +358,4 @@ def signout():
     if request.method == 'POST':
         session.pop("logged", None)
         return json.dumps({"operation": "signout", "result": "success"})
+
