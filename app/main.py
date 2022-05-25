@@ -102,6 +102,8 @@ def hello_world():  # put application's code here
 def get_tables():
 
     if 'logged' in session:
+    # if 1 == 1:
+
         print("jest sesyja")
 
         if request.method == "GET":
@@ -121,23 +123,23 @@ def get_tables():
 @app.route('/lists', methods=['GET', 'POST', 'DELETE', 'PATCH'])
 def get_lists():  # table_id
     if 'logged' in session:
-        if request.method == "GET":
+    # if 1 == 1:
 
+        if request.method == "GET":
             data = {}
-            try:
-                data = json.loads(request.data)
-            except Exception:
+            data["id"] = request.args.get("id")
+            data["table_id"] = request.args.get("table_id")
+            print(data["table_id"])
+
+            if data["table_id"] is None:  # maybe just return all
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
-            if "table_id" not in data:  # maybe just return all
-                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
-            if "id" in data:
+            if data["id"] is not None:
                 lists = ListsModel.query.filter_by(table_id=data["table_id"], id=data["id"])
             else:
                 lists = ListsModel.query.filter_by(table_id=data["table_id"])
-            # lists = ListsModel.query.all()
+
             results = [
                 {
-
                     "id": list.id,
                     "name": list.name,
                     "table_id": list.table_id
@@ -215,15 +217,16 @@ def get_lists():  # table_id
 @app.route('/cards', methods=['GET', 'POST', 'DELETE', 'PATCH'])
 def get_cards():
     if 'logged' in session:
+    # if 1==1:
         if request.method == "GET":
             data = {}
-            try:
-                data = json.loads(request.data)
-            except Exception:
+            data["id"] = request.args.get("id")
+            data["list_id"] = request.args.get("list_id")
+            print(data["list_id"])
+
+            if data["list_id"] is None:
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
-            if "list_id" not in data:
-                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
-            if "id" in data:
+            if data["id"] is not None:
                 cards = CardsModel.query.filter_by(list_id=data["list_id"], id=data["id"])
             else:
                 cards = CardsModel.query.filter_by(list_id=data["list_id"])
