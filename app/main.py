@@ -40,7 +40,6 @@ class TablesModel(db.Model):
         return '<Table %r, %r, %r>' % (self.id, self.name, self.desc)
 
 
-
 class ListsModel(db.Model):
     __tablename__ = 'lists'
     id = db.Column(db.Integer, primary_key=True)
@@ -54,7 +53,6 @@ class ListsModel(db.Model):
 
     def __repr__(self):
         return '<List %r, %r, %r>' % (self.id, self.name, self.table_id)
-
 
 
 class CardsModel(db.Model):
@@ -75,7 +73,6 @@ class CardsModel(db.Model):
 
     def __repr__(self):
         return '<List %r, %r, %r, %r, %r>' % (self.id, self.name, self.list_id, self.description, self.assigne)
-
 
 
 class UserModel(db.Model):
@@ -100,9 +97,8 @@ def hello_world():  # put application's code here
 
 @app.route('/tables', methods=['GET'])
 def get_tables():
-
     if 'logged' in session:
-    # if 1 == 1:
+        # if 1 == 1:
 
         print("jest sesyja")
 
@@ -123,12 +119,10 @@ def get_tables():
 @app.route('/lists', methods=['GET', 'POST', 'DELETE', 'PATCH'])
 def get_lists():  # table_id
     if 'logged' in session:
-    # if 1 == 1:
+        # if 1 == 1:
 
         if request.method == "GET":
-            data = {}
-            data["id"] = request.args.get("id")
-            data["table_id"] = request.args.get("table_id")
+            data = {"id": request.args.get("id"), "table_id": request.args.get("table_id")}
             print(data["table_id"])
 
             if data["table_id"] is None:  # maybe just return all
@@ -148,10 +142,12 @@ def get_lists():  # table_id
             return json.dumps({"operation": "get", "result": "success", "value": results})
         if request.method == "POST":
             lists = ListsModel
-            data = {}
-            try:
-                data = json.loads(request.data)
-            except Exception:
+            print(request.args)
+
+            data = {"name": request.args.get("name"), "table_id": request.args.get("table_id")}
+            if data["table_id"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+            if data["name"] is None:
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
             # workaround, no idea how to not pass id without altering model
@@ -168,13 +164,11 @@ def get_lists():  # table_id
             return json.dumps({"operation": "post", "result": "success"})
         if request.method == "DELETE":
             lists = ListsModel
-            data = {}
-            try:
-                data = json.loads(request.data)
-            except Exception:
-                return 'Invalid request', status.HTTP_400_BAD_REQUEST
+            data = {"id": request.args.get("id"), "table_id": request.args.get("table_id")}
 
-            if "table_id" not in data or "id" not in data:
+            if data["table_id"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+            if data["id"] is None:
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
             # //
@@ -185,7 +179,7 @@ def get_lists():  # table_id
             lists.query.filter_by(id=data["id"], table_id=data["table_id"]).delete()
             db.session.commit()
 
-            print("List {} deleted".format(lists.name))
+            print("List {} deleted".format(data["id"]))
 
             return json.dumps({"operation": "delete", "result": "success"})
         if request.method == "PATCH":
@@ -217,11 +211,9 @@ def get_lists():  # table_id
 @app.route('/cards', methods=['GET', 'POST', 'DELETE', 'PATCH'])
 def get_cards():
     if 'logged' in session:
-    # if 1==1:
+        # if 1==1:
         if request.method == "GET":
-            data = {}
-            data["id"] = request.args.get("id")
-            data["list_id"] = request.args.get("list_id")
+            data = {"id": request.args.get("id"), "list_id": request.args.get("list_id")}
             print(data["list_id"])
 
             if data["list_id"] is None:
@@ -242,10 +234,11 @@ def get_cards():
             return json.dumps({"operation": "get", "result": "success", "value": results})
         if request.method == "POST":
             card = CardsModel
-            data = {}
-            try:
-                data = json.loads(request.data)
-            except Exception:
+            data = {"name": request.args.get("name"), "list_id": request.args.get("list_id"),
+                    "description": request.args.get("description"), "assigne": request.args.get("assigne")}
+            if data["name"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+            if data["list_id"] is None:
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
             # workaround, no idea how to not pass id without altering model
@@ -264,13 +257,11 @@ def get_cards():
             return json.dumps({"operation": "post", "result": "success"})
         if request.method == "DELETE":
             card = CardsModel
-            data = {}
-            try:
-                data = json.loads(request.data)
-            except Exception:
-                return 'Invalid request', status.HTTP_400_BAD_REQUEST
+            data = {"id": request.args.get("id"), "list_id": request.args.get("list_id")}
 
-            if "list_id" not in data or "id" not in data:
+            if data["list_id"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+            if data["id"] is None:
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
             card.query.filter_by(id=data["id"], list_id=data["list_id"]).delete()
@@ -298,7 +289,7 @@ def get_cards():
             card.query.filter_by(id=data["id"]).update(new_values)
             db.session.commit()
 
-            print("Card {} altered".format(card.name))
+            print("Card {} altered".format(data["id"]))
 
             return json.dumps({"operation": "patch", "result": "success"})
     else:
@@ -328,10 +319,8 @@ def signin():
         if not checkpw(pwd.encode('utf-8'), user.password.encode('utf-8')):
             return json.dumps({"operation": "singin", "result": "failure"})
 
-
         session['logged'] = name
         return json.dumps({"operation": "singin", "result": "success"})
-
 
 
 @app.route('/signup', methods=['POST'])
@@ -361,4 +350,3 @@ def signout():
     if request.method == 'POST':
         session.pop("logged", None)
         return json.dumps({"operation": "signout", "result": "success"})
-
