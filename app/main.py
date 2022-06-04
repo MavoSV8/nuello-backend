@@ -55,6 +55,21 @@ class ListsModel(db.Model):
     def __repr__(self):
         return '<List %r, %r, %r>' % (self.id, self.name, self.table_id)
 
+class CommentsModal(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    author = db.Column(db.Text, nullable=False)
+    card_id = db.Column(db.Integer, db.ForeignKey('cards.id'), nullable=False)
+
+    def __init__(self, id, content, author, card_id):
+        self.id = id
+        self.content = content
+        self.author = author
+        self.card_id = card_id
+
+    def __repr__(self):
+        return '<Comment %r, %r, %r, %r>' % (self.id, self.content, self.author, self.card_id)
 
 class CardsModel(db.Model):
     __tablename__ = 'cards'
@@ -161,6 +176,98 @@ def get_lists():  # table_id
             db.session.commit()
 
             print("List {} added".format(data["name"]))
+
+            return json.dumps({"operation": "post", "result": "success"})
+        if request.method == "DELETE":
+            lists = ListsModel
+            data = {"id": request.args.get("id"), "table_id": request.args.get("table_id")}
+
+            if data["table_id"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+            if data["id"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+            # //
+            cards = CardsModel.query.filter_by(list_id=data["id"])
+            for card in cards:
+                card.query.filter_by(id=card.id).delete()
+            # //
+            lists.query.filter_by(id=data["id"], table_id=data["table_id"]).delete()
+            db.session.commit()
+
+            print("List {} deleted".format(data["id"]))
+
+            return json.dumps({"operation": "delete", "result": "success"})
+        if request.method == "PATCH":
+            lists = ListsModel
+            data = {}
+            try:
+                data = json.loads(request.data)
+            except Exception:
+                return 'Invalid request', status.HTTP_400_BAD_REQUEST
+            if "table_id" not in data or "id" not in data:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+            new_values = data.copy()
+            new_values.pop("id", None)
+            new_values.pop("table_id", None)
+            print(new_values)
+
+            # CardsModel.query.filter_by(id=data["id"],list_id=data["list_id"]).update(new_values)
+            lists.query.filter_by(id=data["id"]).update(new_values)
+            db.session.commit()
+
+            print("List {} altered".format(lists.name))
+
+            return json.dumps({"operation": "patch", "result": "success"})
+    else:
+        return json.dumps({"operation": "lists", "result": "failure"})
+
+@app.route('/comments', methods=['GET', 'POST', 'DELETE', 'PATCH'])
+def get_comments():  # table_id
+    if 'logged' in session:
+    # if 1 == 1:
+
+        if request.method == "GET":
+            data = {"id": request.args.get("id"), "card_id": request.args.get("card_id")}
+            # print(data["table_id"])
+
+            if data["card_id"] is None:  # maybe just return all
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+            if data["id"] is not None:
+                comments = CommentsModal.query.filter_by(card_id=data["card_id"], id=data["id"])
+            else:
+                comments = CommentsModal.query.filter_by(card_id=data["card_id"])
+
+            results = [
+                {
+                    "id": comment.id,
+                    "content": comment.content,
+                    "author": comment.author,
+                    "card_id": comment.card_id
+                } for comment in comments]
+
+            return json.dumps({"operation": "get", "result": "success", "value": results})
+        if request.method == "POST":
+            # lists = ListsModel
+            print(request.args)
+            print("XX")
+            data = {"content": request.args.get("content"), "card_id": request.args.get("card_id"),
+                    "author" : request.args.get("author")}
+            print(data)
+            if data["card_id"] is None or data["content"] is None or data["author"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+            # workaround, no idea how to not pass id without altering model
+            id = CommentsModal.query.order_by(CommentsModal.id.desc()).first().id
+            id += 1
+
+            # new_row = card(id, data["name"],data["list_id"],data["description"],data["assigne"])
+            new_row = CommentsModal(id, data["content"], data["author"], data["card_id"])
+            db.session.add(new_row)
+            db.session.commit()
+
+            print("Comment {} added".format(data["content"]))
 
             return json.dumps({"operation": "post", "result": "success"})
         if request.method == "DELETE":
