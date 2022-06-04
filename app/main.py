@@ -430,6 +430,13 @@ def signin():
         session['logged'] = name
         return json.dumps({"operation": "singin", "result": "success"})
 
+@app.route('/whoami', methods=['GET'])
+def whoami():
+    if 'logged' in session:
+        return json.dumps({"operation": "get", "result": "success", "value": session['logged']})
+    else:
+        return json.dumps({"operation": "whoami", "result": "failure"})
+
 
 @app.route('/signup', methods=['POST'])
 def signup():
