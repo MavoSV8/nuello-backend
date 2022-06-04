@@ -13,7 +13,8 @@ from bcrypt import hashpw, checkpw, gensalt
 app = Flask(__name__)
 #                                                        change below if address differs
 app.config[
-    'SQLALCHEMY_DATABASE_URI'] = "postgresql://ovizxqphegguzs:c55b21b95c83814fb811e6f58e1eb8c876b11bce22ec5f53f640b201a75a6849@ec2-99-80-170-190.eu-west-1.compute.amazonaws.com:5432/d4poogetisskjb"
+    'SQLALCHEMY_DATABASE_URI'] = "postgresql://hsjioalqnvqupw:085894b271ce21b67d3cce3eaa53437a34b9e1f7d25e0767c4c6d9d5b8720752@ec2-34-248-169-69.eu-west-1.compute.amazonaws.com:5432/d84m5qfkh2ci7p"
+    #'SQLALCHEMY_DATABASE_URI'] = "postgresql://ovizxqphegguzs:c55b21b95c83814fb811e6f58e1eb8c876b11bce22ec5f53f640b201a75a6849@ec2-99-80-170-190.eu-west-1.compute.amazonaws.com:5432/d4poogetisskjb"
 app.config['CORS_HEADERS'] = 'Content-Type'
 app.config['SESSION_COOKIE_SECURE'] = 'True'
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
