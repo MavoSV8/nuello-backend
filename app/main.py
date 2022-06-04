@@ -71,6 +71,22 @@ class CommentsModal(db.Model):
     def __repr__(self):
         return '<Comment %r, %r, %r, %r>' % (self.id, self.content, self.author, self.card_id)
 
+class TaskModel(db.Model):
+    __tablename__ = 'tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    status = db.Column(db.Text, nullable=False)
+    card_id = db.Column(db.Integer, db.ForeignKey('cards.id'), nullable=False)
+
+    def __init__(self, id, content, status, card_id):
+        self.id = id
+        self.content = content
+        self.status = status
+        self.card_id = card_id
+
+    def __repr__(self):
+        return '<Comment %r, %r, %r, %r>' % (self.id, self.content, self.status, self.card_id)
+
 class CardsModel(db.Model):
     __tablename__ = 'cards'
 
@@ -167,8 +183,11 @@ def get_lists():  # table_id
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
             # workaround, no idea how to not pass id without altering model
-            id = ListsModel.query.order_by(ListsModel.id.desc()).first().id
-            id += 1
+            id = ListsModel.query.order_by(ListsModel.id.desc()).first()
+            if id is None:
+                id = 0
+            else:
+                id = id.id +1
 
             # new_row = card(id, data["name"],data["list_id"],data["description"],data["assigne"])
             new_row = lists(id, data["name"], data["table_id"])
@@ -259,8 +278,11 @@ def get_comments():  # table_id
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
             # workaround, no idea how to not pass id without altering model
-            id = CommentsModal.query.order_by(CommentsModal.id.desc()).first().id
-            id += 1
+            id = CommentsModal.query.order_by(CommentsModal.id.desc()).first()
+            if id is None:
+                id = 0
+            else:
+                id = id.id +1
 
             # new_row = card(id, data["name"],data["list_id"],data["description"],data["assigne"])
             new_row = CommentsModal(id, data["content"], data["author"], data["card_id"])
@@ -271,23 +293,16 @@ def get_comments():  # table_id
 
             return json.dumps({"operation": "post", "result": "success"})
         if request.method == "DELETE":
-            lists = ListsModel
-            data = {"id": request.args.get("id"), "table_id": request.args.get("table_id")}
+            data = {"id": request.args.get("id"), "card_id": request.args.get("card_id")}
 
-            if data["table_id"] is None:
-                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
-            if data["id"] is None:
+            if data["card_id"] is None and data["id"] is None:
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
-            # //
-            cards = CardsModel.query.filter_by(list_id=data["id"])
-            for card in cards:
-                card.query.filter_by(id=card.id).delete()
-            # //
-            lists.query.filter_by(id=data["id"], table_id=data["table_id"]).delete()
+            CommentsModal.query.filter_by(id=data["id"]).delete()
+
             db.session.commit()
 
-            print("List {} deleted".format(data["id"]))
+            print("Comment {} deleted".format(data["id"]))
 
             return json.dumps({"operation": "delete", "result": "success"})
         if request.method == "PATCH":
@@ -310,6 +325,96 @@ def get_comments():  # table_id
             db.session.commit()
 
             print("List {} altered".format(lists.name))
+
+            return json.dumps({"operation": "patch", "result": "success"})
+    else:
+        return json.dumps({"operation": "lists", "result": "failure"})
+
+@app.route('/tasks', methods=['GET', 'POST', 'DELETE', 'PATCH'])
+def get_task():  # table_id
+    if 'logged' in session:
+    # if 1 == 1:
+
+        if request.method == "GET":
+            data = {"id": request.args.get("id"), "card_id" : request.args.get("card_id")}
+            # print(data["table_id"])
+
+            if data["card_id"] is None:  # maybe just return all
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+            if data["id"] is not None:
+                tasks = TaskModel.query.filter_by(card_id=data["card_id"], id=data["id"])
+            else:
+                tasks = TaskModel.query.filter_by(card_id=data["card_id"])
+
+            results = [
+                {
+                    "id": task.id,
+                    "content": task.content,
+                    "status": task.status,
+                    "card_id": task.card_id
+                } for task in tasks]
+
+            return json.dumps({"operation": "get", "result": "success", "value": results})
+        if request.method == "POST":
+            print(request.args)
+            print("XX")
+            data = {"id": request.args.get("id"), "status": request.args.get("status"),
+                    "content": request.args.get("content"), "card_id" : request.args.get("card_id")}
+            # print(data["table_id"])
+
+            if data["card_id"] is None or data["content"] is None or data["status"] is None:  # maybe just return all
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+            # workaround, no idea how to not pass id without altering model
+            id = TaskModel.query.order_by(TaskModel.id.desc()).first()
+            if id is None:
+                id = 0
+            else:
+                id = id.id +1
+
+            # new_row = card(id, data["name"],data["list_id"],data["description"],data["assigne"])
+            new_row = TaskModel(id, data["content"], data["status"], data["card_id"])
+            db.session.add(new_row)
+            db.session.commit()
+
+            print("Task {} added".format(data["content"]))
+
+            return json.dumps({"operation": "post", "result": "success"})
+        if request.method == "DELETE":
+            data = {"id": request.args.get("id"), "card_id": request.args.get("card_id")}
+
+            if data["card_id"] is None and data["id"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+            TaskModel.query.filter_by(id=data["id"]).delete()
+
+            db.session.commit()
+
+            print("Task {} deleted".format(data["id"]))
+
+            return json.dumps({"operation": "delete", "result": "success"})
+        if request.method == "PATCH":
+            task = TaskModel
+
+            print(request.args)
+            print("XX")
+            data = {"content": request.args.get("content"), "card_id": request.args.get("card_id"),
+                    "status" : request.args.get("status"), "id" : request.args.get("id")}
+            print(data)
+            if data["id"] is None or data["card_id"] is None or data["content"] is None or data["status"] is None:
+                return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
+
+
+            new_values = data.copy()
+            # new_values.pop("id", None)
+            # new_values.pop("table_id", None)
+            print(new_values)
+
+            # CardsModel.query.filter_by(id=data["id"],list_id=data["list_id"]).update(new_values)
+            task.query.filter_by(id=data["id"]).update(new_values)
+            db.session.commit()
+
+            print("Task {} altered".format(task.content))
 
             return json.dumps({"operation": "patch", "result": "success"})
     else:
@@ -350,8 +455,11 @@ def get_cards():
                 return 'Invalid request - missing parameters', status.HTTP_400_BAD_REQUEST
 
             # workaround, no idea how to not pass id without altering model
-            id = CardsModel.query.order_by(CardsModel.id.desc()).first().id
-            id += 1
+            id = CardsModel.query.order_by(CardsModel.id.desc()).first()
+            if id is None:
+                id = 0
+            else:
+                id = id.id +1
 
             # new_row = card(id, data["name"],data["list_id"],data["description"],data["assigne"])
             new_row = card(id, data["name"], data["list_id"],
