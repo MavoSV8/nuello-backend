@@ -555,13 +555,15 @@ def signup():
         except Exception:
             return 'Invalid request', status.HTTP_400_BAD_REQUEST
 
-        if data["operation"] != "singup" or data["name"] is None or data["pwd"] is None:
+        if data["operation"] != "signup" or data["name"] is None or data["pwd"] is None:
             return 'Invalid request', status.HTTP_400_BAD_REQUEST
 
         user = UserModel(data["name"], hashpw(data["pwd"].encode('utf-8'), gensalt()).decode('utf-8'))
-
-        db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except Exception:
+            return 'User already exists', status.HTTP_409_CONFLICT
 
         print("User {} added".format(user.name))
 
